@@ -1,15 +1,13 @@
 
-import React from 'react';
 import { VisualStyle, Language } from './types';
 
 export const VISUAL_STYLES: VisualStyle[] = [
-  VisualStyle.Realistis,
-  VisualStyle.Claymations3DPixar,
-  VisualStyle.Stylized3DClay,
-  VisualStyle.Render3D,
-  VisualStyle.Pixar3D,
-  VisualStyle.AnimeComic,
-  VisualStyle.Lego
+  VisualStyle.Animasi2D,
+  VisualStyle.Animasi3D,
+  VisualStyle.StopMotion,
+  VisualStyle.MotionGraphics,
+  VisualStyle.Claymation,
+  VisualStyle.Realistis
 ];
 
 export const LANGUAGES: Language[] = [

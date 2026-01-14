@@ -12,7 +12,8 @@ export const StoryForm: React.FC<StoryFormProps> = ({ onSubmit, isLoading }) => 
   const [formData, setFormData] = useState<StoryRequest>({
     title: '',
     numScenes: 5,
-    visualStyle: VisualStyle.Pixar3D,
+    // Fix: VisualStyle.Pixar3D does not exist on the VisualStyle enum, corrected to VisualStyle.Animasi3D
+    visualStyle: VisualStyle.Animasi3D,
     language: Language.Indonesian
   });
 

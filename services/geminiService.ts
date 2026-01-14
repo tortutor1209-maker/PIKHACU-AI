@@ -2,7 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { StoryRequest, StoryResult } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Always use new GoogleGenAI({apiKey: process.env.API_KEY}) directly as per guidelines
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateStoryContent = async (req: StoryRequest): Promise<StoryResult> => {
   const { title, numScenes, visualStyle, language } = req;
@@ -23,7 +24,11 @@ export const generateStoryContent = async (req: StoryRequest): Promise<StoryResu
        - 'environment': Setting details, background facts.
        - 'camera_movement': Cinematic camera terms (Dolly In, Pan, Orbit, Drone Shot).
        - 'lighting': Atmospheric lighting (Golden hour, Cyberpunk neon, Soft cinematic rim light).
-       - 'visual_style_tags': Keywords specific to the chosen visual style.
+       - 'visual_style_tags': Keywords specific to the chosen visual style. 
+         (Example for 'Animasi 2D': flat colors, cel shaded, line art. 
+          Example for 'Animasi 3D': Pixar-style, highly detailed textures, PBR. 
+          Example for 'Stop Motion': tactile texture, slight frame jitter, physical material look.
+          Example for 'Realistis': photorealistic, hyper-detailed, 8k, cinematic film.)
 
     3. OUTPUT FORMAT:
        - Strict JSON output.
@@ -88,6 +93,7 @@ export const generateStoryContent = async (req: StoryRequest): Promise<StoryResu
     }
   });
 
+  // Correctly accessing the text property on the response object (do not call as a method).
   const result = JSON.parse(response.text || '{}');
   return result as StoryResult;
 };
