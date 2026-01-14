@@ -7,30 +7,43 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 export const generateStoryContent = async (req: StoryRequest): Promise<StoryResult> => {
   const { title, numScenes, visualStyle, language } = req;
 
-  const prompt = `
-    Generate a cinematic educational storytelling script for the title: "${title}".
+  const systemInstruction = `
+    You are PIKHACU.AI ULTIMATE v4, a professional cinematic storytelling architect.
     
-    Total Scenes: ${numScenes}
-    Visual Style: ${visualStyle}
-    Language: ${language}
+    BRAIN RULES:
+    1. NARRATION:
+       - MUST be educational, dense, and meaningful.
+       - ONLY Scene 1 MUST start with: "Apakah kamu tahu..." (ID) or "Did you know..." (EN).
+       - Each narration: 2-4 sentences explaining facts.
+    
+    2. STRUCTURED JSON PROMPTING (CRITICAL):
+       - For each scene, you MUST generate a 'structuredPrompt' object.
+       - 'subject': Detailed character/object description. Keep features IDENTICAL across all scenes for consistency (e.g., "A 7-year-old boy named Budi, wearing a red hoodie, messy black hair, bright eyes").
+       - 'action': Specific physical movement or expression optimized for Video AI (Kling/Runway).
+       - 'environment': Setting details, background facts.
+       - 'camera_movement': Cinematic camera terms (Dolly In, Pan, Orbit, Drone Shot).
+       - 'lighting': Atmospheric lighting (Golden hour, Cyberpunk neon, Soft cinematic rim light).
+       - 'visual_style_tags': Keywords specific to the chosen visual style.
 
-    RULES:
-    1. Narration should NOT be limited by duration.
-    2. Each scene must contain educational, dense, and meaningful narration.
-    3. EVERY NARRATION MUST START WITH: "Apakah kamu tahu..." (Indonesian) or "Did you know..." (English).
-    4. Each scene narration should be 2-4 sentences long.
-    5. Character appearance must be consistent across all scenes.
-    6. Output must include:
-       - Scene details (Narration, Emotional Tone, Establishing Shot Prompt, Detail/Action Shot Prompt)
-       - TikTok Cover Prompt
-       - YouTube Cover Prompt
-       - 5 Viral Hashtags
+    3. OUTPUT FORMAT:
+       - Strict JSON output.
+       - Include TikTok Cover (9:16) and YouTube Cover (16:9) prompts.
+       - Generate 5 specific hashtags: #TahuGakSih, #[VisualStyle]Story, #[Language]Edition, #[Topic], #EdukasiViral.
+  `;
+
+  const prompt = `
+    Generate a high-quality cinematic storytelling script:
+    Title: "${title}"
+    Total Scenes: ${numScenes}
+    Visual Aesthetic: ${visualStyle}
+    Narration Language: ${language}
   `;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: prompt,
     config: {
+      systemInstruction,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -45,12 +58,22 @@ export const generateStoryContent = async (req: StoryRequest): Promise<StoryResu
               type: Type.OBJECT,
               properties: {
                 number: { type: Type.NUMBER },
-                narration: { type: Type.STRING, description: 'Must start with "Apakah kamu tahu..." or "Did you know..."' },
+                narration: { type: Type.STRING },
                 tone: { type: Type.STRING },
-                prompt1: { type: Type.STRING, description: 'Establishing Shot prompt' },
-                prompt2: { type: Type.STRING, description: 'Detail/Action Shot prompt' }
+                structuredPrompt: {
+                  type: Type.OBJECT,
+                  properties: {
+                    subject: { type: Type.STRING },
+                    action: { type: Type.STRING },
+                    environment: { type: Type.STRING },
+                    camera_movement: { type: Type.STRING },
+                    lighting: { type: Type.STRING },
+                    visual_style_tags: { type: Type.STRING }
+                  },
+                  required: ['subject', 'action', 'environment', 'camera_movement', 'lighting', 'visual_style_tags']
+                }
               },
-              required: ['number', 'narration', 'tone', 'prompt1', 'prompt2']
+              required: ['number', 'narration', 'tone', 'structuredPrompt']
             }
           },
           tiktokCover: { type: Type.STRING },

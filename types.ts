@@ -14,12 +14,20 @@ export enum Language {
   English = 'English'
 }
 
+export interface StructuredPrompt {
+  subject: string;
+  action: string;
+  environment: string;
+  camera_movement: string;
+  lighting: string;
+  visual_style_tags: string;
+}
+
 export interface Scene {
   number: number;
   narration: string;
   tone: string;
-  prompt1: string;
-  prompt2: string;
+  structuredPrompt: StructuredPrompt;
 }
 
 export interface StoryResult {
