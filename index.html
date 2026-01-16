@@ -11,25 +11,51 @@
   <style>
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #050505;
-      color: #f8fafc;
+      background-color: #fdfdfb; /* Light cream background matching the logo image */
+      color: #1a1a1a;
     }
     .font-bebas {
       font-family: 'Bebas Neue', cursive;
     }
     .glass-effect {
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.8);
       backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(0, 0, 0, 0.05);
     }
-    .neon-yellow {
-      color: #FACC15;
-      text-shadow: 0 0 15px rgba(250, 204, 21, 0.4);
+
+    /* Colorful Animated Border Effect (Bright) */
+    .colorful-border {
+      position: relative;
+      border: 2px solid transparent !important;
+      background-clip: padding-box !important;
     }
-    .border-gradient {
-      border: 1px solid;
-      border-image-source: linear-gradient(135deg, #FACC15 0%, #EAB308 100%);
+    .colorful-border::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      z-index: -1;
+      background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+      background-size: 400%;
+      border-radius: inherit;
+      animation: move-gradient 12s linear infinite;
     }
+
+    /* Darkened Colorful Animated Text Effect for Light Background */
+    .colorful-text {
+      background: linear-gradient(45deg, #880000, #7d3e00, #727000, #236000, #00725f, #001272, #370072, #72005a, #880000);
+      background-size: 400%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: move-gradient 12s linear infinite;
+    }
+
+    @keyframes move-gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
     }
@@ -37,11 +63,15 @@
       background: transparent;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #333;
+      background: #ddd;
       border-radius: 10px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #444;
+      background: #ccc;
+    }
+
+    input:focus, select:focus {
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
     }
   </style>
 <script type="importmap">
@@ -55,7 +85,7 @@
 }
 </script>
 </head>
-<body>
+<body class="custom-scrollbar">
   <div id="root"></div>
 </body>
 </html>

@@ -9,11 +9,36 @@ import { StoryRequest, StoryResult } from './types';
 import { generateStoryContent } from './services/geminiService';
 
 const AnoaLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 22C12 22 7 18 5 13C3 8 5 4 12 2C19 4 21 8 19 13C17 18 12 22 12 22Z" opacity="0.2"/>
-    <path d="M12 22C12 22 17 18 17 13C17 10 16 8 12 8C8 8 7 10 7 13C7 18 12 22 12 22Z" fill="currentColor"/>
-    <path d="M10 2L10 8M14 2L14 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-    <circle cx="12" cy="14" r="1.5" fill="black" opacity="0.5"/>
+  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    {/* Outer horns / circle */}
+    <path 
+      d="M10 40C10 20 30 10 50 10C70 10 90 20 90 40C90 60 70 90 50 90C30 90 10 60 10 40Z" 
+      stroke="black" 
+      strokeWidth="10" 
+      strokeLinecap="round" 
+    />
+    <path 
+      d="M25 15C15 10 5 30 15 50M75 15C85 10 95 30 85 50" 
+      stroke="black" 
+      strokeWidth="12" 
+      strokeLinecap="round" 
+    />
+    {/* Central Blue stylized shape from the image */}
+    <path 
+      d="M35 30C35 30 30 50 50 75C70 50 65 30 65 30" 
+      stroke="#1E4D7B" 
+      strokeWidth="14" 
+      strokeLinecap="round" 
+      strokeJoin="round" 
+    />
+    <path 
+      d="M42 40L50 55L58 40" 
+      stroke="#2B6CB0" 
+      strokeWidth="8" 
+      strokeLinecap="round" 
+      strokeJoin="round" 
+      className="opacity-60"
+    />
   </svg>
 );
 
@@ -73,24 +98,24 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pb-20 selection:bg-yellow-500 selection:text-black">
+    <div className="min-h-screen pb-20 selection:bg-black selection:text-white">
       {/* Navbar / Header */}
-      <header className="sticky top-0 z-50 glass-effect border-b border-white/5 px-6 py-4">
+      <header className="sticky top-0 z-50 glass-effect border-b border-black/5 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={isLoggedIn ? resetToDashboard : undefined}>
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-yellow-400 rounded-xl md:rounded-2xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-transform hover:scale-105 active:scale-95">
-              <AnoaLogo className="w-6 h-6 md:w-8 md:h-8" />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-white border border-black/10 rounded-xl md:rounded-2xl flex items-center justify-center text-black shadow-lg transition-transform hover:scale-105 active:scale-95">
+              <AnoaLogo className="w-8 h-8 md:w-10 md:h-10" />
             </div>
             <div>
-              <h1 className="font-bebas text-2xl md:text-3xl tracking-widest neon-yellow leading-none">ANOALABS</h1>
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">{APP_CONFIG.VERSION}</p>
+              <h1 className="font-bebas text-2xl md:text-3xl tracking-widest colorful-text leading-none uppercase">{APP_CONFIG.NAME}</h1>
+              <p className="text-[10px] font-bold colorful-text uppercase tracking-[0.2em]">{APP_CONFIG.VERSION}</p>
             </div>
           </div>
           
           {isLoggedIn && (
             <button 
               onClick={handleLogout}
-              className="px-4 py-2 border border-white/10 rounded-full text-[10px] font-bold text-white/40 uppercase tracking-widest hover:bg-white/5 transition-all"
+              className="px-4 py-2 bg-black border border-black/10 rounded-full text-[10px] font-bold text-white uppercase tracking-widest hover:bg-neutral-800 transition-all"
             >
               Logout <i className="fa-solid fa-right-from-bracket ml-2"></i>
             </button>
@@ -115,14 +140,14 @@ const App: React.FC = () => {
             <section className="text-center space-y-4">
                <button 
                 onClick={resetToDashboard}
-                className="text-yellow-500/50 hover:text-yellow-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2 mx-auto mb-4"
+                className="bg-black border border-black/10 px-6 py-2 rounded-full text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2 mx-auto mb-4 hover:bg-neutral-900 transition-all"
               >
-                <i className="fa-solid fa-arrow-left"></i> Kembali ke Dashboard
+                <i className="fa-solid fa-arrow-left"></i> Dashboard
               </button>
-              <h2 className="text-4xl md:text-6xl font-bebas tracking-tighter text-white">
-                TOOLS <span className="text-yellow-400">FAKTA MENARIK</span>
+              <h2 className="text-4xl md:text-6xl font-bebas tracking-tighter text-black">
+                TOOLS <span className="colorful-text">FAKTA MENARIK</span>
               </h2>
-              <p className="text-white/50 max-w-xl mx-auto text-sm leading-relaxed">
+              <p className="text-black/60 max-w-xl mx-auto text-sm leading-relaxed font-semibold">
                 Hasilkan narasi edukatif sinematik dengan visual Soft Clay Pixar Style.
               </p>
             </section>
@@ -130,7 +155,7 @@ const App: React.FC = () => {
             <div className="max-w-2xl mx-auto">
               <StoryForm onSubmit={handleGenerateStory} isLoading={loading} />
               {error && (
-                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-3">
+                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 text-sm flex items-center gap-3">
                   <i className="fa-solid fa-circle-exclamation"></i>
                   {error}
                 </div>
@@ -149,21 +174,21 @@ const App: React.FC = () => {
           <div className="text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
              <button 
                 onClick={resetToDashboard}
-                className="text-yellow-500/50 hover:text-yellow-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2 mx-auto"
+                className="bg-black border border-black/10 px-6 py-2 rounded-full text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2 mx-auto hover:bg-neutral-900 transition-all"
               >
-                <i className="fa-solid fa-arrow-left"></i> Kembali ke Dashboard
+                <i className="fa-solid fa-arrow-left"></i> Dashboard
               </button>
-            <div className="py-20 glass-effect rounded-3xl border border-white/10 space-y-6">
-              <div className="w-20 h-20 bg-cyan-500/10 rounded-full flex items-center justify-center mx-auto border border-cyan-500/20">
-                <i className="fa-solid fa-bag-shopping text-3xl text-cyan-400"></i>
+            <div className="py-20 glass-effect rounded-3xl border border-black/5 space-y-6 colorful-border">
+              <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto border border-blue-500/20">
+                <i className="fa-solid fa-bag-shopping text-3xl text-blue-600"></i>
               </div>
-              <h2 className="text-4xl font-bebas tracking-widest text-white">TOOLS AFILIATE PRODUK</h2>
-              <p className="text-white/40 max-w-md mx-auto italic px-6">
+              <h2 className="text-4xl font-bebas tracking-widest text-black uppercase">TOOLS AFILIATE PRODUK</h2>
+              <p className="text-black/50 max-w-md mx-auto italic px-6 font-semibold">
                 "Modul ini sedang dalam pengembangan untuk optimasi konten promosi produk affiliate secara otomatis."
               </p>
               <div className="flex justify-center">
-                <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-white/30 uppercase tracking-[0.3em]">
-                  Coming Soon ULTIMATE v4.5
+                <span className="px-4 py-2 bg-black border border-black/10 rounded-full text-[10px] font-bold text-white uppercase tracking-[0.3em]">
+                  Coming Soon v4.5
                 </span>
               </div>
             </div>
@@ -171,12 +196,9 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <div className="fixed top-20 left-10 w-64 h-64 bg-yellow-500/5 blur-[120px] rounded-full -z-10 animate-pulse"></div>
-      <div className="fixed bottom-20 right-10 w-96 h-96 bg-yellow-600/5 blur-[150px] rounded-full -z-10 animate-pulse delay-700"></div>
-
-      <footer className="mt-20 py-10 border-t border-white/5 text-center">
-        <p className="text-white/20 text-xs uppercase tracking-widest">
-          © {new Date().getFullYear()} ANOALABS • Powered by Gemini Engine
+      <footer className="mt-20 py-10 border-t border-black/5 text-center">
+        <p className="text-black/30 text-[10px] uppercase tracking-widest font-black">
+          © {new Date().getFullYear()} {APP_CONFIG.NAME} • POWERED BY GEMINI ENGINE
         </p>
       </footer>
     </div>

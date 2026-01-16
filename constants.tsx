@@ -1,3 +1,4 @@
+
 import { VisualStyle, Language } from './types';
 
 export const VISUAL_STYLES: VisualStyle[] = [
@@ -19,5 +20,5 @@ export const LANGUAGES: Language[] = [
 export const APP_CONFIG = {
   NAME: 'ANOALABS',
   VERSION: 'ULTIMATE v4',
-  TAGLINE: '🐂 ADVANCED CINEMATIC STORYTELLING'
+  TAGLINE: '🎬 STORYTELLING EDUKATIF SINEMATIK'
 };

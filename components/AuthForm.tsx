@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { APP_CONFIG } from '../constants';
 
 interface AuthFormProps {
   onLoginSuccess: () => void;
@@ -54,7 +55,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
       {/* Dynamic Top Alert */}
       {alert && (
         <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl border shadow-2xl animate-in slide-in-from-top-4 duration-300 ${
-          alert.type === 'error' ? 'bg-red-500/20 border-red-500/50 text-red-200' : 'bg-green-500/20 border-green-500/50 text-green-200'
+          alert.type === 'error' ? 'bg-red-600 border-red-700 text-white' : 'bg-green-600 border-green-700 text-white'
         }`}>
           <div className="flex items-center gap-3 font-bold text-sm tracking-wide">
             <i className={`fa-solid ${alert.type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}`}></i>
@@ -64,40 +65,38 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
       )}
 
       <div className="text-center space-y-2">
-        <h2 className="text-4xl font-bebas tracking-widest text-white">
-          {mode === 'login' ? 'LOGIN SYSTEM' : 'CREATE ACCOUNT'}
+        <h2 className="text-6xl font-bebas tracking-[0.1em] colorful-text uppercase">
+          {APP_CONFIG.NAME}
         </h2>
-        <p className="text-white/40 text-xs font-bold uppercase tracking-[0.3em]">
-          Access AnoaLabs Ultimate Tools
+        <p className="colorful-text text-[10px] font-black uppercase tracking-[0.4em]">
+          {APP_CONFIG.VERSION} • ACCESS SYSTEM
         </p>
       </div>
 
-      <div className="glass-effect p-8 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent opacity-50"></div>
-        
+      <div className="glass-effect p-8 rounded-[2rem] colorful-border shadow-2xl relative overflow-hidden">
         <form onSubmit={mode === 'login' ? handleLogin : handleRegister} className="space-y-6">
-          <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-yellow-500/70 ml-1">Username</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-black ml-1">Username</label>
             <div className="relative group">
-              <i className="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-yellow-500 transition-colors"></i>
+              <i className="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-black/30 group-focus-within:text-black transition-colors"></i>
               <input
                 type="text"
-                placeholder="Masukkan username"
-                className="w-full bg-black/40 border border-white/5 rounded-xl pl-12 pr-4 py-4 text-white placeholder:text-white/10 focus:outline-none focus:border-yellow-500/50 transition-all"
+                placeholder="Username"
+                className="w-full bg-neutral-900 border border-black/5 rounded-xl pl-12 pr-4 py-4 text-white font-medium placeholder:text-white/20 focus:outline-none focus:border-black/20 transition-all shadow-inner"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-yellow-500/70 ml-1">Password</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-black ml-1">Password</label>
             <div className="relative group">
-              <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-yellow-500 transition-colors"></i>
+              <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-black/30 group-focus-within:text-black transition-colors"></i>
               <input
                 type="password"
-                placeholder="Masukkan password"
-                className="w-full bg-black/40 border border-white/5 rounded-xl pl-12 pr-4 py-4 text-white placeholder:text-white/10 focus:outline-none focus:border-yellow-500/50 transition-all"
+                placeholder="Password"
+                className="w-full bg-neutral-900 border border-black/5 rounded-xl pl-12 pr-4 py-4 text-white font-medium placeholder:text-white/20 focus:outline-none focus:border-black/20 transition-all shadow-inner"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -106,19 +105,29 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onLoginSuccess }) => {
 
           <button
             type="submit"
-            className="w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-black font-black text-sm uppercase tracking-widest rounded-xl transition-all shadow-[0_10px_20px_rgba(234,179,8,0.15)] transform active:scale-95"
+            className="w-full py-4 bg-black hover:bg-neutral-900 text-white border border-black/10 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-2xl transform active:scale-95 flex items-center justify-center gap-2 group"
           >
-            {mode === 'login' ? 'Masuk Sekarang' : 'Daftar Akun'}
+            {mode === 'login' ? (
+              <>
+                MASUK SEKARANG 
+                <i className="fa-solid fa-right-to-bracket group-hover:translate-x-1 transition-transform opacity-50"></i>
+              </>
+            ) : (
+              <>
+                DAFTAR AKUN
+                <i className="fa-solid fa-user-plus group-hover:scale-110 transition-transform opacity-50"></i>
+              </>
+            )}
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-white/5 text-center">
-          <p className="text-white/30 text-xs font-bold uppercase tracking-widest mb-3">
+        <div className="mt-8 pt-6 border-t border-black/5 text-center">
+          <p className="text-black/40 text-[10px] font-bold uppercase tracking-widest mb-3">
             {mode === 'login' ? 'Belum punya akses?' : 'Sudah punya akun?'}
           </p>
           <button 
             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-            className="text-yellow-500 hover:text-yellow-400 font-black text-[10px] uppercase tracking-[0.2em] border-b border-yellow-500/30 pb-1"
+            className="text-black hover:underline font-black text-[10px] uppercase tracking-[0.2em] transition-colors pb-1"
           >
             {mode === 'login' ? 'Buat Akun Baru' : 'Login ke Akun'}
           </button>
