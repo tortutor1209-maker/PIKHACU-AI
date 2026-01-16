@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { StoryResult, StructuredPrompt } from '../types';
+import { GoogleGenAI, Modality } from "@google/genai";
 
 interface StoryDisplayProps {
   data: StoryResult;
@@ -14,8 +15,48 @@ const AnoaLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
+// Audio helper functions
+function decodeBase64(base64: string) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+// Convert PCM to WAV for downloading
+function pcmToWav(pcmData: Uint8Array, sampleRate: number) {
+  const buffer = new ArrayBuffer(44 + pcmData.length);
+  const view = new DataView(buffer);
+  view.setUint32(0, 0x52494646, false);
+  view.setUint32(4, 36 + pcmData.length, true);
+  view.setUint32(8, 0x57415645, false);
+  view.setUint32(12, 0x666d7420, false);
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  view.setUint32(36, 0x64617461, false);
+  view.setUint32(40, pcmData.length, true);
+  const pcmArray = new Uint8Array(pcmData.buffer);
+  for (let i = 0; i < pcmArray.length; i++) {
+    view.setUint8(44 + i, pcmArray[i]);
+  }
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
 export const StoryDisplay: React.FC<StoryDisplayProps> = ({ data }) => {
   const [copied, setCopied] = useState<string | null>(null);
+  const [sceneVoices, setSceneVoices] = useState<Record<number, string>>(
+    data.scenes.reduce((acc, s) => ({ ...acc, [s.number]: 'Kore' }), {})
+  );
+  const [playingScene, setPlayingScene] = useState<number | null>(null);
+  const [sceneAudioUrls, setSceneAudioUrls] = useState<Record<number, string>>({});
 
   const getConsolidatedPrompt = (p: StructuredPrompt) => {
     return `${p.subject}, ${p.action}, in ${p.environment}. Camera: ${p.camera_movement}. Lighting: ${p.lighting}. Style: ${p.visual_style_tags}`;
@@ -25,6 +66,64 @@ export const StoryDisplay: React.FC<StoryDisplayProps> = ({ data }) => {
     navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handlePlayVoice = async (text: string, sceneNum: number) => {
+    if (playingScene !== null) return;
+    
+    if (sceneAudioUrls[sceneNum]) {
+      playStoredAudio(sceneAudioUrls[sceneNum], sceneNum);
+      return;
+    }
+
+    setPlayingScene(sceneNum);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: sceneVoices[sceneNum] },
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const audioBytes = decodeBase64(base64Audio);
+        const wavBlob = pcmToWav(audioBytes, 24000);
+        const url = URL.createObjectURL(wavBlob);
+        
+        setSceneAudioUrls(prev => ({ ...prev, [sceneNum]: url }));
+        playStoredAudio(url, sceneNum);
+      } else {
+        setPlayingScene(null);
+      }
+    } catch (err) {
+      console.error("TTS Error:", err);
+      setPlayingScene(null);
+    }
+  };
+
+  const playStoredAudio = async (url: string, sceneNum: number) => {
+    setPlayingScene(sceneNum);
+    const audio = new Audio(url);
+    audio.onended = () => setPlayingScene(null);
+    audio.play();
+  };
+
+  const handleRefresh = (sceneNum: number) => {
+    if (sceneAudioUrls[sceneNum]) {
+      URL.revokeObjectURL(sceneAudioUrls[sceneNum]);
+      const nextUrls = { ...sceneAudioUrls };
+      delete nextUrls[sceneNum];
+      setSceneAudioUrls(nextUrls);
+    }
   };
 
   const copyAll = () => {
@@ -38,12 +137,6 @@ ${data.scenes.map(s => `
 Scene ${s.number}
 🎙️ Narasi: ${s.narration}
 🎧 Tone: ${s.tone}
-
-🔥 PROMPT VARIANT A:
-${getConsolidatedPrompt(s.structuredPrompt1)}
-
-⚡ PROMPT VARIANT B:
-${getConsolidatedPrompt(s.structuredPrompt2)}
 `).join('\n')}
 
 🎬 BONUS OTOMATIS
@@ -54,13 +147,13 @@ ${getConsolidatedPrompt(s.structuredPrompt2)}
     copyToClipboard(text, 'all');
   };
 
-  const PromptGrid = ({ prompt, label, colorClass, sceneNum, variant }: { prompt: StructuredPrompt, label: string, colorClass: string, sceneNum: number, variant: string }) => (
-    <div className={`space-y-4 p-5 rounded-2xl bg-white/60 border border-black/5 hover:border-black/20 transition-all`}>
+  const PromptGrid = ({ prompt, label, sceneNum, variant }: { prompt: StructuredPrompt, label: string, sceneNum: number, variant: string }) => (
+    <div className="space-y-4 p-5 rounded-2xl bg-white/60 border border-black/5 hover:border-black/20 transition-all">
       <div className="flex items-center justify-between">
-        <span className={`text-[10px] font-black uppercase tracking-[0.2em] text-black/60`}>{label}</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black/60">{label}</span>
         <button 
           onClick={() => copyToClipboard(getConsolidatedPrompt(prompt), `text-${sceneNum}-${variant}`)}
-          className={`text-[9px] font-black px-3 py-1.5 bg-black border border-black/10 rounded-lg transition-all text-white flex items-center gap-1 hover:bg-neutral-800`}
+          className="text-[9px] font-black px-3 py-1.5 bg-black border border-black/10 rounded-lg transition-all text-white flex items-center gap-1 hover:bg-neutral-800"
         >
           {copied === `text-${sceneNum}-${variant}` ? 'COPIED' : <><i className="fa-solid fa-copy text-[8px]"></i> COPY STRING</>}
         </button>
@@ -116,21 +209,82 @@ ${getConsolidatedPrompt(s.structuredPrompt2)}
                    {scene.number}
                  </div>
                  <div>
-                    <span className="font-bebas text-2xl tracking-wider text-black block leading-none">SCENE SEQUENCE</span>
-                    <span className="text-[10px] text-black/40 font-black uppercase tracking-widest">{scene.tone}</span>
+                    <span className="font-bebas text-2xl tracking-wider text-black block leading-none uppercase">Sequence Part</span>
+                    <span className="text-[10px] text-black/40 font-black uppercase tracking-widest italic">{scene.tone}</span>
                  </div>
               </div>
             </div>
             
             <div className="p-8 space-y-8">
-              {/* Narration */}
-              <div className="relative">
+              {/* Narration Section with Voice Controls */}
+              <div className="relative space-y-6">
                 <div className="absolute -left-4 top-0 bottom-0 w-1 bg-black/10 rounded-full"></div>
-                <div className="flex items-center gap-2 text-black mb-3">
-                  <i className="fa-solid fa-microphone-lines text-sm opacity-50"></i>
-                  <span className="text-[10px] uppercase font-black tracking-[0.2em]">Voiceover Script</span>
+                
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="flex items-center gap-2 text-black">
+                    <i className="fa-solid fa-microphone-lines text-sm opacity-50"></i>
+                    <span className="text-[10px] uppercase font-black tracking-[0.2em]">Voiceover Script</span>
+                  </div>
+
+                  {/* Character Voice Selector within Script Area - 2 Pria, 2 Wanita */}
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <select 
+                        value={sceneVoices[scene.number]}
+                        onChange={(e) => {
+                          handleRefresh(scene.number);
+                          setSceneVoices(prev => ({ ...prev, [scene.number]: e.target.value }));
+                        }}
+                        className="bg-black text-white pl-4 pr-8 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest appearance-none focus:outline-none hover:bg-neutral-900 transition-all border border-white/10"
+                      >
+                        <optgroup label="Pria" className="bg-neutral-900 text-white">
+                          <option value="Kore">Pria (Kore) - Formal</option>
+                          <option value="Charon">Pria (Charon) - Berat</option>
+                        </optgroup>
+                        <optgroup label="Wanita" className="bg-neutral-900 text-white">
+                          <option value="Puck">Wanita (Puck) - Ceria</option>
+                          <option value="Zephyr">Wanita (Zephyr) - Lembut</option>
+                        </optgroup>
+                      </select>
+                      <i className="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-white/50 text-[8px] pointer-events-none"></i>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <button 
+                      onClick={() => handlePlayVoice(scene.narration, scene.number)}
+                      disabled={playingScene !== null}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-black text-[9px] tracking-widest transition-all ${
+                        playingScene === scene.number 
+                        ? 'bg-neutral-100 text-black border-black animate-pulse' 
+                        : 'bg-black text-white border-black hover:bg-neutral-800'
+                      }`}
+                      title="Putar Narasi"
+                    >
+                      {playingScene === scene.number ? <i className="fa-solid fa-spinner animate-spin"></i> : <i className="fa-solid fa-play"></i>} PUTAR
+                    </button>
+
+                    {sceneAudioUrls[scene.number] && (
+                      <a 
+                        href={sceneAudioUrls[scene.number]}
+                        download={`${data.title.replace(/\s+/g, '_')}_Scene_${scene.number}.wav`}
+                        className="flex items-center justify-center w-8 h-8 rounded-xl bg-white border border-black/10 text-black hover:bg-black hover:text-white transition-all shadow-sm"
+                        title="Unduh Audio"
+                      >
+                        <i className="fa-solid fa-download text-xs"></i>
+                      </a>
+                    )}
+
+                    <button 
+                      onClick={() => handleRefresh(scene.number)}
+                      className="flex items-center justify-center w-8 h-8 rounded-xl bg-white border border-black/10 text-black/30 hover:text-red-500 hover:border-red-500 transition-all"
+                      title="Hapus Audio & Refresh"
+                    >
+                      <i className="fa-solid fa-rotate-right text-xs"></i>
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xl md:text-2xl leading-relaxed font-bold text-black italic">
+
+                <p className="text-xl md:text-2xl leading-relaxed font-bold text-black italic bg-black/5 p-6 rounded-2xl border border-black/5">
                   "{scene.narration}"
                 </p>
               </div>
@@ -141,14 +295,12 @@ ${getConsolidatedPrompt(s.structuredPrompt2)}
                   <PromptGrid 
                     prompt={scene.structuredPrompt1} 
                     label="PROMPT VARIANT A (PRIMARY)" 
-                    colorClass="black" 
                     sceneNum={scene.number} 
                     variant="a" 
                   />
                   <PromptGrid 
                     prompt={scene.structuredPrompt2} 
                     label="PROMPT VARIANT B (SECONDARY)" 
-                    colorClass="black" 
                     sceneNum={scene.number} 
                     variant="b" 
                   />
