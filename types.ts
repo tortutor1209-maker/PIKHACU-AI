@@ -1,11 +1,12 @@
-
 export enum VisualStyle {
   Animasi2D = 'Animasi 2D (Dua Dimensi)',
   Animasi3D = 'Animasi 3D (Tiga Dimensi)',
   StopMotion = 'Animasi Stop Motion',
   MotionGraphics = 'Motion Graphics',
   Claymation = 'Animasi Clay (Claymation)',
-  Realistis = 'Realistis'
+  Realistis = 'Realistis',
+  SoftClayPixar3D = 'Soft Clay-Infused Pixar-Style 3D',
+  FilmDocumentary1980s = '1980s 35mm Film Documentary Style'
 }
 
 export enum Language {
@@ -26,7 +27,8 @@ export interface Scene {
   number: number;
   narration: string;
   tone: string;
-  structuredPrompt: StructuredPrompt;
+  structuredPrompt1: StructuredPrompt;
+  structuredPrompt2: StructuredPrompt;
 }
 
 export interface StoryResult {

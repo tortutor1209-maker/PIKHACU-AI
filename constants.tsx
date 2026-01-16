@@ -1,4 +1,3 @@
-
 import { VisualStyle, Language } from './types';
 
 export const VISUAL_STYLES: VisualStyle[] = [
@@ -7,7 +6,9 @@ export const VISUAL_STYLES: VisualStyle[] = [
   VisualStyle.StopMotion,
   VisualStyle.MotionGraphics,
   VisualStyle.Claymation,
-  VisualStyle.Realistis
+  VisualStyle.Realistis,
+  VisualStyle.SoftClayPixar3D,
+  VisualStyle.FilmDocumentary1980s
 ];
 
 export const LANGUAGES: Language[] = [
@@ -16,7 +17,7 @@ export const LANGUAGES: Language[] = [
 ];
 
 export const APP_CONFIG = {
-  NAME: 'PIKHACU.AI',
+  NAME: 'ANOALABS',
   VERSION: 'ULTIMATE v4',
-  TAGLINE: '🎬 AUTOMATED CINEMATIC STORYTELLING'
+  TAGLINE: '🐂 ADVANCED CINEMATIC STORYTELLING'
 };

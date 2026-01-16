@@ -1,17 +1,52 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StoryForm } from './components/StoryForm';
 import { StoryDisplay } from './components/StoryDisplay';
+import { AuthForm } from './components/AuthForm';
+import { Dashboard } from './components/Dashboard';
 import { APP_CONFIG } from './constants';
 import { StoryRequest, StoryResult } from './types';
 import { generateStoryContent } from './services/geminiService';
 
+const AnoaLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 22C12 22 7 18 5 13C3 8 5 4 12 2C19 4 21 8 19 13C17 18 12 22 12 22Z" opacity="0.2"/>
+    <path d="M12 22C12 22 17 18 17 13C17 10 16 8 12 8C8 8 7 10 7 13C7 18 12 22 12 22Z" fill="currentColor"/>
+    <path d="M10 2L10 8M14 2L14 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+    <circle cx="12" cy="14" r="1.5" fill="black" opacity="0.5"/>
+  </svg>
+);
+
+type ViewState = 'auth' | 'dashboard' | 'story' | 'affiliate';
+
 const App: React.FC = () => {
+  const [view, setView] = useState<ViewState>('auth');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<StoryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleGenerate = async (data: StoryRequest) => {
+  useEffect(() => {
+    const savedUser = localStorage.getItem('anoalabs_current_user');
+    if (savedUser) {
+      setIsLoggedIn(true);
+      setView('dashboard');
+    }
+  }, []);
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    setView('dashboard');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('anoalabs_current_user');
+    setIsLoggedIn(false);
+    setView('auth');
+    setResult(null);
+  };
+
+  const handleGenerateStory = async (data: StoryRequest) => {
     setLoading(true);
     setError(null);
     setResult(null);
@@ -19,20 +54,21 @@ const App: React.FC = () => {
     try {
       const generatedData = await generateStoryContent(data);
       setResult(generatedData);
-      // Scroll to result
       setTimeout(() => {
-        window.scrollTo({ top: window.innerHeight - 100, behavior: 'smooth' });
-      }, 100);
+        const resultSection = document.getElementById('story-result');
+        if (resultSection) resultSection.scrollIntoView({ behavior: 'smooth' });
+      }, 200);
     } catch (err: any) {
       console.error(err);
-      setError('Gagal membuat cerita. Silakan coba lagi nanti atau periksa koneksi Anda.');
+      setError('Gagal membuat cerita. Silakan coba lagi nanti.');
     } finally {
       setLoading(false);
     }
   };
 
-  const reset = () => {
+  const resetToDashboard = () => {
     setResult(null);
+    setView('dashboard');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -41,65 +77,106 @@ const App: React.FC = () => {
       {/* Navbar / Header */}
       <header className="sticky top-0 z-50 glass-effect border-b border-white/5 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={reset}>
-            <div className="w-10 h-10 bg-yellow-400 rounded-lg flex items-center justify-center text-black shadow-[0_0_15px_rgba(250,204,21,0.5)]">
-              <i className="fa-solid fa-clapperboard text-xl"></i>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={isLoggedIn ? resetToDashboard : undefined}>
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-yellow-400 rounded-xl md:rounded-2xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-transform hover:scale-105 active:scale-95">
+              <AnoaLogo className="w-6 h-6 md:w-8 md:h-8" />
             </div>
             <div>
-              <h1 className="font-bebas text-2xl tracking-widest neon-yellow leading-none">PIKHACU.AI</h1>
+              <h1 className="font-bebas text-2xl md:text-3xl tracking-widest neon-yellow leading-none">ANOALABS</h1>
               <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">{APP_CONFIG.VERSION}</p>
             </div>
           </div>
-          <div className="hidden md:block">
-            <span className="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] border border-white/10 px-4 py-2 rounded-full">
-              Automated Cinematic Storytelling System
-            </span>
-          </div>
+          
+          {isLoggedIn && (
+            <button 
+              onClick={handleLogout}
+              className="px-4 py-2 border border-white/10 rounded-full text-[10px] font-bold text-white/40 uppercase tracking-widest hover:bg-white/5 transition-all"
+            >
+              Logout <i className="fa-solid fa-right-from-bracket ml-2"></i>
+            </button>
+          )}
         </div>
       </header>
 
-      {/* Hero Content */}
-      <main className="max-w-4xl mx-auto px-6 pt-12 space-y-16">
-        <section className="text-center space-y-4">
-          <div className="inline-block px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full text-[10px] font-bold text-yellow-400 uppercase tracking-[0.2em] mb-4">
-            New Generation Engine
-          </div>
-          <h2 className="text-5xl md:text-7xl font-bebas tracking-tighter text-white">
-            Ubah Ide Menjadi <span className="text-yellow-400">Narasi Sinematik</span>
-          </h2>
-          <p className="text-white/50 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
-            Hasilkan rangkaian scene storytelling edukatif dengan format profesional. 
-            Otomatisasi prompt untuk Midjourney, DALL-E, atau Stable Diffusion dengan gaya visual yang konsisten.
-          </p>
-        </section>
+      <main className="max-w-4xl mx-auto px-6 pt-12">
+        {view === 'auth' && (
+          <AuthForm onLoginSuccess={handleLoginSuccess} />
+        )}
 
-        {/* Form Section */}
-        <section id="generator" className="max-w-2xl mx-auto">
-          <StoryForm onSubmit={handleGenerate} isLoading={loading} />
-          {error && (
-            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-3">
-              <i className="fa-solid fa-circle-exclamation"></i>
-              {error}
+        {view === 'dashboard' && (
+          <Dashboard 
+            onSelectStory={() => setView('story')} 
+            onSelectAffiliate={() => setView('affiliate')} 
+          />
+        )}
+
+        {view === 'story' && (
+          <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <section className="text-center space-y-4">
+               <button 
+                onClick={resetToDashboard}
+                className="text-yellow-500/50 hover:text-yellow-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2 mx-auto mb-4"
+              >
+                <i className="fa-solid fa-arrow-left"></i> Kembali ke Dashboard
+              </button>
+              <h2 className="text-4xl md:text-6xl font-bebas tracking-tighter text-white">
+                TOOLS <span className="text-yellow-400">FAKTA MENARIK</span>
+              </h2>
+              <p className="text-white/50 max-w-xl mx-auto text-sm leading-relaxed">
+                Hasilkan narasi edukatif sinematik dengan visual Soft Clay Pixar Style.
+              </p>
+            </section>
+            
+            <div className="max-w-2xl mx-auto">
+              <StoryForm onSubmit={handleGenerateStory} isLoading={loading} />
+              {error && (
+                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-3">
+                  <i className="fa-solid fa-circle-exclamation"></i>
+                  {error}
+                </div>
+              )}
             </div>
-          )}
-        </section>
 
-        {/* Results Section */}
-        {result && (
-          <section className="pt-8">
-            <StoryDisplay data={result} />
-          </section>
+            {result && (
+              <div id="story-result" className="pt-8">
+                <StoryDisplay data={result} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {view === 'affiliate' && (
+          <div className="text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+             <button 
+                onClick={resetToDashboard}
+                className="text-yellow-500/50 hover:text-yellow-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2 mx-auto"
+              >
+                <i className="fa-solid fa-arrow-left"></i> Kembali ke Dashboard
+              </button>
+            <div className="py-20 glass-effect rounded-3xl border border-white/10 space-y-6">
+              <div className="w-20 h-20 bg-cyan-500/10 rounded-full flex items-center justify-center mx-auto border border-cyan-500/20">
+                <i className="fa-solid fa-bag-shopping text-3xl text-cyan-400"></i>
+              </div>
+              <h2 className="text-4xl font-bebas tracking-widest text-white">TOOLS AFILIATE PRODUK</h2>
+              <p className="text-white/40 max-w-md mx-auto italic px-6">
+                "Modul ini sedang dalam pengembangan untuk optimasi konten promosi produk affiliate secara otomatis."
+              </p>
+              <div className="flex justify-center">
+                <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-white/30 uppercase tracking-[0.3em]">
+                  Coming Soon ULTIMATE v4.5
+                </span>
+              </div>
+            </div>
+          </div>
         )}
       </main>
 
-      {/* Floating Sparkle Elements for aesthetics */}
       <div className="fixed top-20 left-10 w-64 h-64 bg-yellow-500/5 blur-[120px] rounded-full -z-10 animate-pulse"></div>
       <div className="fixed bottom-20 right-10 w-96 h-96 bg-yellow-600/5 blur-[150px] rounded-full -z-10 animate-pulse delay-700"></div>
 
-      {/* Footer */}
       <footer className="mt-20 py-10 border-t border-white/5 text-center">
         <p className="text-white/20 text-xs uppercase tracking-widest">
-          © {new Date().getFullYear()} PIKHACU.AI • Powered by Gemini Engine
+          © {new Date().getFullYear()} ANOALABS • Powered by Gemini Engine
         </p>
       </footer>
     </div>
