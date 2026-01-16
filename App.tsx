@@ -10,34 +10,21 @@ import { generateStoryContent } from './services/geminiService';
 
 const AnoaLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    {/* Outer horns / circle */}
+    {/* Stylized Anoa/Bull Logo based on the provided image */}
+    <circle cx="50" cy="50" r="40" stroke="black" strokeWidth="6" fill="transparent" />
     <path 
-      d="M10 40C10 20 30 10 50 10C70 10 90 20 90 40C90 60 70 90 50 90C30 90 10 60 10 40Z" 
+      d="M20 35C25 25 35 20 50 20C65 20 75 25 80 35C75 45 65 50 50 50C35 50 25 45 20 35Z" 
+      fill="black" 
+    />
+    <path 
+      d="M30 35C30 35 35 60 50 85C65 60 70 35 70 35C65 40 55 45 50 45C45 45 35 40 30 35Z" 
+      fill="black" 
+    />
+    <path 
+      d="M35 15C32 15 25 22 28 32M65 15C68 15 75 22 72 32" 
       stroke="black" 
-      strokeWidth="10" 
-      strokeLinecap="round" 
-    />
-    <path 
-      d="M25 15C15 10 5 30 15 50M75 15C85 10 95 30 85 50" 
-      stroke="black" 
-      strokeWidth="12" 
-      strokeLinecap="round" 
-    />
-    {/* Central Blue stylized shape from the image */}
-    <path 
-      d="M35 30C35 30 30 50 50 75C70 50 65 30 65 30" 
-      stroke="#1E4D7B" 
-      strokeWidth="14" 
-      strokeLinecap="round" 
-      strokeJoin="round" 
-    />
-    <path 
-      d="M42 40L50 55L58 40" 
-      stroke="#2B6CB0" 
       strokeWidth="8" 
       strokeLinecap="round" 
-      strokeJoin="round" 
-      className="opacity-60"
     />
   </svg>
 );
@@ -145,7 +132,7 @@ const App: React.FC = () => {
                 <i className="fa-solid fa-arrow-left"></i> Dashboard
               </button>
               <h2 className="text-4xl md:text-6xl font-bebas tracking-tighter text-black">
-                TOOLS <span className="colorful-text">FAKTA MENARIK</span>
+                TOOLS <span className="colorful-text">ANOALABS STORY</span>
               </h2>
               <p className="text-black/60 max-w-xl mx-auto text-sm leading-relaxed font-semibold">
                 Hasilkan narasi edukatif sinematik dengan visual Soft Clay Pixar Style.

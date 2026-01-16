@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { StoryRequest, StoryResult } from "../types";
 
@@ -106,4 +107,26 @@ export const generateStoryContent = async (req: StoryRequest): Promise<StoryResu
 
   const result = JSON.parse(response.text || '{}');
   return result as StoryResult;
+};
+
+export const generateImage = async (prompt: string, aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "16:9"): Promise<string> => {
+  const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await genAI.models.generateContent({
+    model: 'gemini-2.5-flash-image',
+    contents: {
+      parts: [{ text: prompt }],
+    },
+    config: {
+      imageConfig: {
+        aspectRatio: aspectRatio,
+      },
+    },
+  });
+
+  for (const part of response.candidates[0].content.parts) {
+    if (part.inlineData) {
+      return `data:image/png;base64,${part.inlineData.data}`;
+    }
+  }
+  throw new Error("Gagal mendapatkan data gambar dari API.");
 };

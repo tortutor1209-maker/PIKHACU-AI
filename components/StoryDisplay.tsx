@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { StoryResult, StructuredPrompt } from '../types';
 import { GoogleGenAI, Modality } from "@google/genai";
+import { generateImage } from '../services/geminiService';
 
 interface StoryDisplayProps {
   data: StoryResult;
@@ -9,9 +10,21 @@ interface StoryDisplayProps {
 
 const AnoaLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <path d="M10 40C10 20 30 10 50 10C70 10 90 20 90 40C90 60 70 90 50 90C30 90 10 60 10 40Z" stroke="currentColor" strokeWidth="10" />
-    <path d="M25 15C15 10 5 30 15 50M75 15C85 10 95 30 85 50" stroke="currentColor" strokeWidth="12" />
-    <path d="M35 30C35 30 30 50 50 75C70 50 65 30 65 30" stroke="#1E4D7B" strokeWidth="14" />
+    <circle cx="50" cy="50" r="40" stroke="black" strokeWidth="6" fill="transparent" />
+    <path 
+      d="M20 35C25 25 35 20 50 20C65 20 75 25 80 35C75 45 65 50 50 50C35 50 25 45 20 35Z" 
+      fill="black" 
+    />
+    <path 
+      d="M30 35C30 35 35 60 50 85C65 60 70 35 70 35C65 40 55 45 50 45C45 45 35 40 30 35Z" 
+      fill="black" 
+    />
+    <path 
+      d="M35 15C32 15 25 22 28 32M65 15C68 15 75 22 72 32" 
+      stroke="black" 
+      strokeWidth="8" 
+      strokeLinecap="round" 
+    />
   </svg>
 );
 
@@ -26,7 +39,6 @@ function decodeBase64(base64: string) {
   return bytes;
 }
 
-// Convert PCM to WAV for downloading
 function pcmToWav(pcmData: Uint8Array, sampleRate: number) {
   const buffer = new ArrayBuffer(44 + pcmData.length);
   const view = new DataView(buffer);
@@ -34,7 +46,7 @@ function pcmToWav(pcmData: Uint8Array, sampleRate: number) {
   view.setUint32(4, 36 + pcmData.length, true);
   view.setUint32(8, 0x57415645, false);
   view.setUint32(12, 0x666d7420, false);
-  view.setUint32(16, 16, true);
+  view.setUint16(16, 16, true);
   view.setUint16(20, 1, true);
   view.setUint16(22, 1, true);
   view.setUint32(24, sampleRate, true);
@@ -58,6 +70,11 @@ export const StoryDisplay: React.FC<StoryDisplayProps> = ({ data }) => {
   const [playingScene, setPlayingScene] = useState<number | null>(null);
   const [sceneAudioUrls, setSceneAudioUrls] = useState<Record<number, string>>({});
 
+  // State for image visualizer
+  const [activeVisualizer, setActiveVisualizer] = useState<{ scene: number, variant: string } | null>(null);
+  const [visualizedImages, setVisualizedImages] = useState<Record<string, { url: string, ratio: "16:9" | "9:16" }>>({});
+  const [isGeneratingImage, setIsGeneratingImage] = useState<string | null>(null);
+
   const getConsolidatedPrompt = (p: StructuredPrompt) => {
     return `${p.subject}, ${p.action}, in ${p.environment}. Camera: ${p.camera_movement}. Lighting: ${p.lighting}. Style: ${p.visual_style_tags}`;
   };
@@ -66,6 +83,20 @@ export const StoryDisplay: React.FC<StoryDisplayProps> = ({ data }) => {
     navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleVisualize = async (prompt: string, id: string, ratio: "16:9" | "9:16") => {
+    setIsGeneratingImage(id);
+    setActiveVisualizer(null); // Close ratio selector
+    try {
+      const imageUrl = await generateImage(prompt, ratio);
+      setVisualizedImages(prev => ({ ...prev, [id]: { url: imageUrl, ratio } }));
+    } catch (err) {
+      console.error("Image Gen Error:", err);
+      alert("Gagal memvisualisasikan gambar. Silakan coba lagi.");
+    } finally {
+      setIsGeneratingImage(null);
+    }
   };
 
   const handlePlayVoice = async (text: string, sceneNum: number) => {
@@ -117,7 +148,7 @@ export const StoryDisplay: React.FC<StoryDisplayProps> = ({ data }) => {
     audio.play();
   };
 
-  const handleRefresh = (sceneNum: number) => {
+  const handleRefreshAudio = (sceneNum: number) => {
     if (sceneAudioUrls[sceneNum]) {
       URL.revokeObjectURL(sceneAudioUrls[sceneNum]);
       const nextUrls = { ...sceneAudioUrls };
@@ -147,27 +178,100 @@ Scene ${s.number}
     copyToClipboard(text, 'all');
   };
 
-  const PromptGrid = ({ prompt, label, sceneNum, variant }: { prompt: StructuredPrompt, label: string, sceneNum: number, variant: string }) => (
-    <div className="space-y-4 p-5 rounded-2xl bg-white/60 border border-black/5 hover:border-black/20 transition-all">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black/60">{label}</span>
-        <button 
-          onClick={() => copyToClipboard(getConsolidatedPrompt(prompt), `text-${sceneNum}-${variant}`)}
-          className="text-[9px] font-black px-3 py-1.5 bg-black border border-black/10 rounded-lg transition-all text-white flex items-center gap-1 hover:bg-neutral-800"
-        >
-          {copied === `text-${sceneNum}-${variant}` ? 'COPIED' : <><i className="fa-solid fa-copy text-[8px]"></i> COPY STRING</>}
-        </button>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        {Object.entries(prompt).map(([key, value]) => (
-          <div key={key} className="bg-white p-2 rounded-lg border border-black/5">
-            <div className="text-[8px] font-black text-black/30 uppercase tracking-tighter mb-0.5">{key.replace('_', ' ')}</div>
-            <p className="text-[10px] text-black font-semibold leading-tight line-clamp-2">{value}</p>
+  const PromptGrid = ({ prompt, label, sceneNum, variant }: { prompt: StructuredPrompt, label: string, sceneNum: number, variant: string }) => {
+    const id = `img-${sceneNum}-${variant}`;
+    const visualized = visualizedImages[id];
+    const isGenerating = isGeneratingImage === id;
+    const consolidated = getConsolidatedPrompt(prompt);
+
+    return (
+      <div className="space-y-4 p-5 rounded-2xl bg-white/60 border border-black/5 hover:border-black/20 transition-all flex flex-col">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black/60">{label}</span>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => copyToClipboard(consolidated, `text-${sceneNum}-${variant}`)}
+              className="text-[9px] font-black px-3 py-1.5 bg-white border border-black/10 rounded-lg transition-all text-black flex items-center gap-1 hover:bg-neutral-50"
+            >
+              {copied === `text-${sceneNum}-${variant}` ? 'COPIED' : <><i className="fa-solid fa-copy text-[8px]"></i> COPY</>}
+            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setActiveVisualizer(activeVisualizer?.scene === sceneNum && activeVisualizer?.variant === variant ? null : { scene: sceneNum, variant })}
+                disabled={isGenerating}
+                className={`text-[9px] font-black px-3 py-1.5 border rounded-lg transition-all flex items-center gap-1 ${
+                  isGenerating ? 'bg-neutral-100 text-black/40' : 'bg-black text-white hover:bg-neutral-800'
+                }`}
+              >
+                {isGenerating ? <i className="fa-solid fa-spinner animate-spin"></i> : <i className="fa-solid fa-wand-magic-sparkles"></i>} 
+                VISUALISASIKAN
+              </button>
+              
+              {/* Ratio Selector Tooltip */}
+              {activeVisualizer?.scene === sceneNum && activeVisualizer?.variant === variant && (
+                <div className="absolute right-0 top-full mt-2 z-50 glass-effect p-2 rounded-xl border border-black/10 shadow-2xl animate-in fade-in zoom-in-95 duration-200 min-w-[150px]">
+                   <p className="text-[8px] font-black text-black/40 uppercase tracking-widest px-2 mb-2">Pilih Rasio Gambar</p>
+                   <button 
+                    onClick={() => handleVisualize(consolidated, id, "16:9")}
+                    className="w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold text-black hover:bg-black hover:text-white flex items-center justify-between transition-colors"
+                   >
+                     YouTube (16:9) <i className="fa-solid fa-desktop opacity-30"></i>
+                   </button>
+                   <button 
+                    onClick={() => handleVisualize(consolidated, id, "9:16")}
+                    className="w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold text-black hover:bg-black hover:text-white flex items-center justify-between transition-colors"
+                   >
+                     TikTok (9:16) <i className="fa-solid fa-mobile-screen opacity-30"></i>
+                   </button>
+                </div>
+              )}
+            </div>
           </div>
-        ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {Object.entries(prompt).map(([key, value]) => (
+            <div key={key} className="bg-white p-2 rounded-lg border border-black/5">
+              <div className="text-[8px] font-black text-black/30 uppercase tracking-tighter mb-0.5">{key.replace('_', ' ')}</div>
+              <p className="text-[10px] text-black font-semibold leading-tight line-clamp-2">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Generated Image Display */}
+        {isGenerating && (
+          <div className="mt-4 aspect-video bg-neutral-100 rounded-xl flex flex-col items-center justify-center border border-dashed border-black/10 animate-pulse">
+             <i className="fa-solid fa-circle-notch animate-spin text-black/20 text-2xl mb-2"></i>
+             <p className="text-[10px] font-black text-black/30 uppercase tracking-widest">Generating Visual...</p>
+          </div>
+        )}
+
+        {visualized && !isGenerating && (
+          <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
+            <div className={`overflow-hidden rounded-xl border border-black/10 shadow-lg ${visualized.ratio === "9:16" ? "aspect-[9/16] max-w-[200px] mx-auto" : "aspect-video"}`}>
+              <img src={visualized.url} alt="AI Visual" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex items-center gap-2">
+              <a 
+                href={visualized.url} 
+                download={`anoalabs_scene_${sceneNum}_${variant}.png`}
+                className="flex-1 bg-white border border-black/10 text-black py-2 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black hover:text-white transition-all"
+              >
+                <i className="fa-solid fa-download"></i> Unduh
+              </a>
+              <button 
+                onClick={() => handleVisualize(consolidated, id, visualized.ratio)}
+                className="w-10 h-8 bg-white border border-black/10 text-black/40 py-2 rounded-lg hover:text-red-500 hover:border-red-500 transition-all flex items-center justify-center"
+                title="Regenerate Image"
+              >
+                <i className="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
@@ -226,13 +330,13 @@ Scene ${s.number}
                     <span className="text-[10px] uppercase font-black tracking-[0.2em]">Voiceover Script</span>
                   </div>
 
-                  {/* Character Voice Selector within Script Area - 2 Pria, 2 Wanita */}
+                  {/* Character Voice Selector within Script Area */}
                   <div className="flex items-center gap-2">
                     <div className="relative">
                       <select 
                         value={sceneVoices[scene.number]}
                         onChange={(e) => {
-                          handleRefresh(scene.number);
+                          handleRefreshAudio(scene.number);
                           setSceneVoices(prev => ({ ...prev, [scene.number]: e.target.value }));
                         }}
                         className="bg-black text-white pl-4 pr-8 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest appearance-none focus:outline-none hover:bg-neutral-900 transition-all border border-white/10"
@@ -249,7 +353,6 @@ Scene ${s.number}
                       <i className="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-white/50 text-[8px] pointer-events-none"></i>
                     </div>
 
-                    {/* Action Buttons */}
                     <button 
                       onClick={() => handlePlayVoice(scene.narration, scene.number)}
                       disabled={playingScene !== null}
@@ -275,7 +378,7 @@ Scene ${s.number}
                     )}
 
                     <button 
-                      onClick={() => handleRefresh(scene.number)}
+                      onClick={() => handleRefreshAudio(scene.number)}
                       className="flex items-center justify-center w-8 h-8 rounded-xl bg-white border border-black/10 text-black/30 hover:text-red-500 hover:border-red-500 transition-all"
                       title="Hapus Audio & Refresh"
                     >
